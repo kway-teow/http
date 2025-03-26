@@ -1,0 +1,33 @@
+{
+  "git": {
+    "requireBranch": "main",
+    "commitMessage": "chore: release v${version}",
+    "tagName": "v${version}",
+    "push": true,
+    "requireCleanWorkingDir": true
+  },
+  "github": {
+    "release": true,
+    "releaseName": "Release v${version}",
+    "tokenRef": "GITHUB_TOKEN",
+    "draft": false,
+    "autoGenerate": true
+  },
+  "npm": {
+    "publish": true,
+    "skipChecks": true,
+    "publishConfig": {
+      "registry": "https://registry.npmjs.org"
+    }
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": "angular",
+      "infile": "CHANGELOG.md"
+    }
+  },
+  "hooks": {
+    "after:git:release": "echo Successfully created git tag v${version}",
+    "after:release": "echo Successfully released v${version} to npm."
+  }
+}

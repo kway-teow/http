@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+名称：typescript-best-practices.mdc
+说明：TypeScript 编码标准和类型安全指南
+globs：**/*.{ts,tsx}
+---
+
+- 在 `tsconfig.json` 中启用 `strict` 模式以增强类型检查
+- 使用 `readonly` 数组和属性来防止意外突变
+- 利用 `Partial`、`Readonly` 和 `Pick` 等实用程序类型进行类型操作
+- 实现自定义类型保护以进行运行时类型检查和缩小
+- 函数要考虑参数可能是空的边界场景
+- 可选参数尽可能给默认值
+- 文件和文件夹的命名，以"-"分隔

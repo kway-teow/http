@@ -1,0 +1,9 @@
+# Run lint-staged for code formatting and linting
+pnpm dlx lint-staged
+
+# Run test for code test
+pnpm test
+
+# Run tests with coverage check
+pnpm vitest run --coverage
+

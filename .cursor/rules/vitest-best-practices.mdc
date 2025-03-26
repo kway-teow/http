@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+名称：vitest-best-practices.mdc
+说明：使用 Vitest 测试最佳实践
+globs：**/*.{ts,tsx}
+---
+
+- 使用vitest测试框架
+- 使用 `describe` 和 `test` 块以逻辑方式组织测试
+- 使用 `vi.xxx` 实现各种模拟
+- 测试覆盖率要求100%
+- 测试用例要求测试边界情况
+- 在监视模式下运行测试，以实现高效开发和即时反馈

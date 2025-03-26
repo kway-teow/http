@@ -1,0 +1,76 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'docs/**'
+      - 'typedoc.json'
+      - '.github/workflows/docs.yml'
+      - 'README.md'
+      
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # 首先浅克隆主分支用于生成文档
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.x
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Generate docs
+        run: pnpm typedoc
+
+      - name: Setup Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      # 单独检出 gh-pages 分支
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+          sparse-checkout: .
+        continue-on-error: true
+
+      - name: Deploy to gh-pages
+        run: |
+          # 如果 gh-pages 分支不存在，创建一个空目录
+          if [ ! -d "gh-pages" ]; then
+            mkdir gh-pages
+            cd gh-pages
+            git init
+            git checkout --orphan gh-pages
+          else
+            cd gh-pages
+          fi
+          
+          # 清空当前目录（保留 .git）
+          find . -maxdepth 1 ! -name '.git' -exec rm -rf {} \;
+          
+          # 复制新生成的文档
+          cp -r ../docs/* .
+          
+          # 提交更改
+          git add -A
+          git commit -m "docs: update documentation [skip ci]" || echo "No changes to commit"
+          
+          # 设置远程仓库并推送
+          git remote add origin https://github.com/${GITHUB_REPOSITORY}.git || git remote set-url origin https://github.com/${GITHUB_REPOSITORY}.git
+          git push origin HEAD:gh-pages --force 

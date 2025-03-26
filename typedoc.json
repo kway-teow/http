@@ -1,0 +1,11 @@
+{
+    "entryPoints": ["src/index.ts"],
+    "out": "docs",
+    "name": "@kway-teow/http",
+    "includeVersion": true,
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "excludeExternals": true,
+    "readme": "README.md",
+    "theme": "default"
+}
