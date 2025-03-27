@@ -61,5 +61,8 @@
   "license": "MIT",
   "lint-staged": {
     "*.js": "eslint --cache --fix"
+  },
+  "dependencies": {
+    "ky": "^1.7.5"
   }
 }

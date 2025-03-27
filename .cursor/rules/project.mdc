@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: 
+globs: 
+alwaysApply: true
+---
+ # 项目背景
+
+这是 一个基于 "ky" 的TypeScript HTTP请求的源代码仓库，发布为 npm 包 @kwayteow/http
+
+- 使用 TypeScript 和 ky 开发
+- 兼容Web和Node请求
+

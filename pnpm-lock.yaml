@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      ky:
+        specifier: ^1.7.5
+        version: 1.7.5
     devDependencies:
       '@eslint/js':
         specifier: ^9.21.0
