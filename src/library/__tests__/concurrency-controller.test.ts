@@ -9,7 +9,7 @@ describe('ConcurrencyController', () => {
     controller = new ConcurrencyController({
       maxConcurrent: 2,
       maxQueue: 3,
-      timeout: 10,
+      timeout: 1000,
     })
   })
 
@@ -34,9 +34,9 @@ describe('ConcurrencyController', () => {
 
     // 同时执行3个请求（超过最大并发数2）
     const promises = [
-      controller.execute(createDelayTask(100)),
-      controller.execute(createDelayTask(100)),
-      controller.execute(createDelayTask(100)),
+      controller.execute(createDelayTask(101)),
+      controller.execute(createDelayTask(102)),
+      controller.execute(createDelayTask(103)),
     ]
 
     // 等待一个时钟周期，让请求开始处理
@@ -47,33 +47,33 @@ describe('ConcurrencyController', () => {
     expect(controller.getQueueLength()).toBe(1)
 
     // 等待第一批请求完成
-    await vi.advanceTimersByTimeAsync(100)
+    await vi.advanceTimersByTimeAsync(102)
 
     // 等待队列中的请求完成
-    await vi.advanceTimersByTimeAsync(100)
+    await vi.advanceTimersByTimeAsync(103)
 
     // 等待所有 Promise 完成
     const results = await Promise.all(promises)
 
     // 验证所有任务都返回了正确的结果
-    expect(results).toEqual([100, 100, 100])
+    expect(results).toEqual([101, 102, 103])
 
     // 所有任务完成后，并发数和队列都应该为空
     expect(controller.getCurrentConcurrent()).toBe(0)
     expect(controller.getQueueLength()).toBe(0)
-  }, 10000) // 增加超时时间到 10 秒
+  }, 1000) // 增加超时时间到 10 秒
 
   it('应该在队列满时拒绝新请求', async () => {
     // 创建一个永不完成的任务
     const createPendingTask = () => () => new Promise(() => {})
 
     // 填满并发槽和队列
-    // 忽略这些 Promise，因为它们永远不会完成
-    void controller.execute(createPendingTask()) // 并发1
-    void controller.execute(createPendingTask()) // 并发2
-    void controller.execute(createPendingTask()) // 队列1
-    void controller.execute(createPendingTask()) // 队列2
-    void controller.execute(createPendingTask()) // 队列3
+    // 使用 catch 处理这些永不完成的 Promise 的潜在错误
+    controller.execute(createPendingTask()).catch(() => {}) // 并发1
+    controller.execute(createPendingTask()).catch(() => {}) // 并发2
+    controller.execute(createPendingTask()).catch(() => {}) // 队列1
+    controller.execute(createPendingTask()).catch(() => {}) // 队列2
+    controller.execute(createPendingTask()).catch(() => {}) // 队列3
 
     // 等待一个时钟周期，让请求开始处理
     await vi.advanceTimersByTimeAsync(0)
@@ -85,35 +85,61 @@ describe('ConcurrencyController', () => {
   })
 
   it('应该在超时时取消请求', async () => {
-    const slowTask = () => new Promise(() => {})
-    const promise = controller.execute(slowTask)
+    // 创建一个明确会超时的任务
+    const slowTask = () => new Promise<void>(() => {
+      // 这个Promise故意不会resolve
+    })
 
-    // 等待一个时钟周期，让请求开始处理
-    await vi.advanceTimersByTimeAsync(0)
+    // 使用更短的超时时间创建控制器
+    const timeoutController = new ConcurrencyController({
+      maxConcurrent: 2,
+      maxQueue: 3,
+      timeout: 10, // 10ms超时
+    })
 
-    // 前进时间超过超时时间
-    await vi.advanceTimersByTimeAsync(1001)
+    // 启动任务并等待它超时
+    const promise = timeoutController.execute(slowTask).catch((error) => {
+      expect(error).toMatchObject({ message: '请求超时' })
+    })
 
-    await expect(promise).rejects.toThrow('请求超时')
+    // 等待足够的时间让任务超时
+    await vi.advanceTimersByTimeAsync(100)
+    await promise
+
+    // 清除所有计时器
+    vi.clearAllTimers()
   })
 
   it('应该能清空队列', async () => {
+    // 创建一个专门的控制器实例
+    const queueController = new ConcurrencyController({
+      maxConcurrent: 2,
+      maxQueue: 3,
+      timeout: 100,
+    })
+
     // 创建一个永不完成的任务
     const createPendingTask = () => () => new Promise(() => {})
 
-    // 填满并发槽和部分队列
-    void controller.execute(createPendingTask()) // 并发1
-    void controller.execute(createPendingTask()) // 并发2
-    const queuedTask = controller.execute(createPendingTask()) // 队列1
+    // 填满并发槽，并处理潜在的错误
+    queueController.execute(createPendingTask()).catch(() => {}) // 并发1
+    queueController.execute(createPendingTask()).catch(() => {}) // 并发2
 
-    // 等待一个时钟周期，让请求开始处理
-    await vi.advanceTimersByTimeAsync(0)
+    // 创建一个进入队列的任务并捕获其Promise
+    const queuedTask = queueController.execute(createPendingTask()).catch((error) => {
+      expect(error).toMatchObject({ message: '请求队列已清空' })
+    })
 
     // 清空队列
-    controller.clearQueue()
+    queueController.clearQueue()
 
-    // 队列中的任务应该被拒绝
-    await expect(queuedTask).rejects.toThrow('请求队列已清空')
-    expect(controller.getQueueLength()).toBe(0)
+    // 等待足够的时间让任务超时
+    await vi.advanceTimersByTimeAsync(200)
+    await queuedTask
+
+    // 验证队列长度为0
+    expect(queueController.getQueueLength()).toBe(0)
+
+    vi.clearAllTimers()
   })
 })

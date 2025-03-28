@@ -72,15 +72,30 @@ export class ConcurrencyController {
     this.currentConcurrent++
 
     try {
-      // 创建一个超时 Promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject('请求超时'), this.timeout)
-      })
+      // 创建一个超时控制器
+      const controller = new AbortController()
+      const signal = controller.signal
 
-      // 使用 Promise.race 实现超时控制
-      const result = await Promise.race([task(), timeoutPromise])
+      // 创建一个超时Promise
+      const timeoutId = setTimeout(() => {
+        controller.abort(new Error('请求超时'))
+      }, this.timeout)
 
-      return result
+      try {
+        // 运行任务，如果超时会抛出AbortError
+        return await Promise.race([
+          task(),
+          new Promise<never>((_, reject) => {
+            signal.addEventListener('abort', () => {
+              reject(signal.reason)
+            })
+          }),
+        ])
+      }
+      finally {
+        // 清理超时计时器
+        clearTimeout(timeoutId)
+      }
     }
     finally {
       this.currentConcurrent--
